@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link href="http://127.0.0.1:9000/bigemap.js/v2.1.0/bigemap.css" rel="stylesheet" />
+    <script src="./common/bigemap.js"></script>
+    <script type="text/javascript" src="./common/echarts.min.js"></script>
+    <script src="./common/iclient9.min.js"></script>
+    <link rel="stylesheet" href="./common/bm.measure.css" />
+    <script src="./common/bm.measure.js"></script>
+    <link href="./common/buttons.min.css" rel="stylesheet" />
+    <script type="text/javascript" src="./common/moveMarker.js"></script>
+    <script type="text/javascript" src="./common/bm.geometryutil.js"></script>
+    <script type="text/javascript" src="./common/jquery.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+
+      #control {
+        background-color: #eee;
+        padding: 15px;
+        position: absolute;
+        bottom: 0;
+        right: 10px;
+        z-index: 9;
+      }
+
+      .button {
+        width: 100px;
+        display: inline-block;
+      }
+
+      #control1 {
+        background-color: #eee;
+        padding: 1 5px;
+        position: absolute;
+        bottom: 40px;
+        left: 10px;
+        z-index: 9;
+      }
+
+      .button1 {
+        width: 100px;
+        display: inline-block;
+      }
+
+      .tool_bar {
+        position: absolute;
+        right: 10px;
+        top: 55px;
+        z-index: 9;
+      }
+      .info-input {
+        position: absolute;
+        height: 200px;
+        width: 210px;
+        padding: 10px;
+        right: 0;
+        top: 200px;
+        z-index: 1000;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.1);
+      }
+      .info-input ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .info-input .log-lat input{
+        margin-bottom: 10px;
+        font-size: 12px;
+        width: 50px;
+      }
+      .info-input #addInput {
+        width: 100px;
+        height: 20px;
+        line-height: 20px;
+        background: #999;
+        text-align: center;
+        margin: 0 auto;
+        margin-top: 10px;
+      }
+      #mapList {
+        max-height: 150px;
+        overflow: auto;
+      }
+      .info-input .log-lat-btn {
+        position: absolute;
+        bottom: 0;
+      }
+      .info-input .log-lat-btn button {
+        margin-left: 50px;
+      }
+    </style>
+    <title>湖南省_卫图</title>
+  </head>
+
+  <body>
+    <div class="tool_bar">
+      <p><a id="add_marker" href="javascript:void (0)" class="button3 button-tiny button-rounded button-primary">显示标注</a></p>
+      <p><a id="remove_marker" href="javascript:void (0)" class="button3 button-tiny button-rounded button-caution">删除标注</a></p>
+    </div>
+
+    <div id="control1">
+      <p>平面坐标和经纬度的互转</p>
+      <p>单击地图即可查看效果</p>
+      <div>
+        <a class="button1 button-tiny button-rounded button-primary" href="javascript:void (0);"> 0,0 </a>
+      </div>
+      <div>
+        <a id="panTo" class="button1 button-tiny button-rounded button-primary" href="javascript:void (0)"> 0,0 </a>
+      </div>
+    </div>
+
+    <div id="control">
+      <p>轨迹控制</p>
+      <div>
+        <a class="button button-tiny button-rounded button-primary" href="javascript:void (0)"> 开始 </a>
+      </div>
+      <div>
+        <a class="button button-tiny button-rounded button-primary" href="javascript:void (0)"> 暂停 </a>
+      </div>
+      <div>
+        <a class="button button-tiny button-rounded button-primary" href="javascript:void (0)"> 继续 </a>
+      </div>
+      <div>
+        <a class="button button-tiny button-rounded button-primary" href="javascript:void (0)"> 加速 </a>
+      </div>
+      <div>
+        <a class="button button-tiny button-rounded button-primary" href="javascript:void (0)"> 减速 </a>
+      </div>
+    </div>
+
+    <div class="info-input">
+      <ul id="mapList">
+        <li class="log-lat">
+          <span>经度：</span><input name="log"/>
+          <span>纬度：</span><input name="lat"/>
+        </li>
+        <li class="log-lat">
+          <span>经度：</span><input name="log"/>
+          <span>纬度：</span><input name="lat"/>
+        </li>
+      </ul>
+      <div id="addInput">+</div>
+      <div class="log-lat-btn">
+        <button id="clearMap">清除</button>
+        <button id="comfLocation">确定</button>
+      </div>
+    </div>
+    <div id="map"></div>
+    <script>
+      BM.Config.HTTP_URL = 'http://127.0.0.1:9000'
+      var map = BM.map('map', 'bigemap.49fic0mc', { crs: BM.CRS.EPSG4326, center: [26.433591, 110.365364], zoom: 13, zoomControl: true })
+
+      //---5图文信息和坐标部分---
+
+      var changsha = BM.marker([28.232, 112.9285]).bindPopup('<p>长沙市</p><p><img src="./common/changsha.jpg" alt="长沙"></p><p>湖南省省会，国务院批复确定的中国长江中游地区重要的中心城市；全国“两型社会”综合配套改革试验区、中国重要的粮食生产基地，长江中游城市群和长江经济带重要的节点城市。</p>').addTo(map)
+      var yueyang = BM.marker([29.361, 113.1199]).bindPopup('<p>岳阳市</p><p><img src="./common/yueyang.jpg" alt="岳阳"></p><p>岳阳，古称“巴陵”，又名“岳州”，湖南省地级市，省域副中心城市，第二大经济体，国务院首批沿江开放城市，长江中游重要的区域中心城市，湖南省大城市，湖南自贸区。</p>').addTo(map)
+      var shaoyang = BM.marker([27.2498, 111.4574]).bindPopup('<p>邵阳市</p><p><img src="./common/shaoyang.jpg" alt="邵阳"></p><p>邵阳，是湖南省下辖地级市，史称“宝庆”。位于湘中偏西南，资江上游；越岭逶迤东、南，雪峰山耸峙西、北，资江自西南向东北流贯全境，中间为丘陵盆地。</p>').addTo(map)
+      var huaihua = BM.marker([27.5623, 109.9885]).bindPopup('<p>怀化市</p><p><img src="./common/huaihua.jpg" alt="怀化"></p><p>怀化市，别称“鹤城”，古称“鹤州”、“五溪”，湖南省地级市，位于湖南省西部偏南，处于武陵山脉和雪峰山脉之间，总面积27564平方千米。</p>').addTo(map)
+      var xiyan = BM.marker([26.6211, 110.4761]).bindPopup('<p>西岩镇</p><p><img src="./common/xiyanzhen.jpg" alt="西岩镇"></p><p>西岩镇位于湖南省邵阳市城步县，是苗族自治区域，自然环境优越……</p>').addTo(map)
+      var wugang = BM.marker([26.7308, 110.6249]).bindPopup('<p>武冈市</p><p><img src="./common/wugang.jpg" alt="武冈市"></p><p>武冈市，湖南省辖县级市，由邵阳市代管，位于湖南省西南部，雪峰山东麓，南岭北缘，资水上游。地势东、西、南三面环山、中部低平，由南向北倾斜，属中亚热带季风湿润气候，气候温和。</p>').addTo(map)
+      var chengbu = BM.marker([26.3972, 110.3145]).bindPopup('<p>城步县</p><p><img src="./common/chengbu.jpg" alt="城步县"></p><p>城步苗族自治县，隶属于湖南省邵阳市，位于湖南省西南部，是湖南省的苗族自治县，是1956年国务院批准成立的全国5个单列苗族自治县之一。</p>').addTo(map)
+      var zhongfang = BM.marker([27.4468, 109.9374]).bindPopup('<p>中方县</p><p><img src="./common/zhongfang.jpg" alt="中方县"></p><p>中方县，隶属于湖南省怀化市，地处湖南省西南部，怀化市中部，东接溆浦县、南邻洪江市、西界芷江县、北依辰溪县，西北环抱鹤城区。</p>').addTo(map)
+      var zhangjiajie = BM.marker([29.1223, 110.4703]).bindPopup('<p>张家界市</p><p><img src="./common/zhangjiajie1.jpg" alt="张家界市"></p><p><img src="./common/zhangjiajie2.jpg" alt="张家界市2"></p><p>张家界，原名“大庸市”，湖南省地级市。辖2个市辖区（永定区、武陵源区）、2个县（慈利县、桑植县）。位于湖南西北部，澧水中上游，属武陵山区腹地。</p>').addTo(map)
+      var yongzhou = BM.marker([26.4261, 111.6057]).bindPopup('<p>永州市</p><p><img src="./common/yongzhou.jpg" alt="永州市"></p><p>永州，雅称“潇湘”，湖南省地级市，位于湖南省南部，潇、湘二水汇合处，下辖2区9县，总面积22441平方千米，地势三面环山、地貌复杂多样。</p>').addTo(map)
+      var yiyang = BM.marker([28.5595, 112.3473]).bindPopup('<p>益阳市</p><p><img src="./common/yiyang.jpg" alt="益阳市"></p><p>益阳为湖南省地级市，位于长江中下游平原的洞庭湖南岸，地处湖南省北部，居雪峰山的东端及其余脉带，是长江中游城市群重要成员、洞庭湖生态经济区核心城市之一，也是长株潭3+5城市群之一。</p>').addTo(map)
+      var loudi = BM.marker([27.7063, 111.9842]).bindPopup('<p>娄底市</p><p><img src="./common/loudi.jpg" alt="娄底市"></p<p>娄底市，湖南省辖地级市。据传天上二十八星宿中的“娄星”和“氐星”在这里交相辉映，故而得名。境内地势西高东低，呈阶梯状倾斜；西部山峰雄伟，地势险峻，海拔较高；东部地势逐步降低，地形起伏平缓，海拔较低。</p>').addTo(map)
+      var hengyang = BM.marker([26.9041, 112.5626]).bindPopup('<p>衡阳市</p><p><img src="./common/hengyang.jpg" alt="衡阳市"></p><p>衡阳，湖南省地级市之一。位于中国南部，湖南省中南部，是长江中游城市群重要成员，湖南省域副中心城市，湘南地区的政治、经济、军事、文化中心。</p>').addTo(map)
+      var chenzhou = BM.marker([25.7784, 113.0037]).bindPopup('<p>郴州市</p><p><img src="./common/chenzhou.jpg" alt="郴州市"></p><p>郴州市是湖南省下辖的地级市。“郴”字，意为林中之邑，故郴州别称为“林城”；郴州自古被誉为“九仙二佛之地”，是道教、佛教发展之福地，故郴州又别称为“福城”。</p>').addTo(map)
+      var changde = BM.marker([29.037, 111.6917]).bindPopup('<p>常德市</p><p><img src="./common/changde.jpg" alt="常德市"></p><p>常德，古称“武陵”、“朗州”，湖南省辖地级市。位于湖南北部，江南洞庭湖西侧，武陵山下，史称“川黔咽喉，云贵门户”，是长江经济带、长江中游城市群、环洞庭湖生态经济圈的重要城市。</p>').addTo(map)
+      //---5图文信息和坐标部分---
+
+      //---6添加和移除标注部分---
+      document.querySelector('#add_marker').onclick = function () {
+        //调用 addTo方法可以将标注添加到地图上
+        m.addTo(map)
+        changsha.addTo(map)
+        yueyang.addTo(map)
+        shaoyang.addTo(map)
+        huaihua.addTo(map)
+        xiyan.addTo(map)
+        wugang.addTo(map)
+        chengbu.addTo(map)
+        zhongfang.addTo(map)
+        zhangjiajie.addTo(map)
+        yongzhou.addTo(map)
+        yiyang.addTo(map)
+        loudi.addTo(map)
+        hengyang.addTo(map)
+        chenzhou.addTo(map)
+        changde.addTo(map)
+      }
+      document.querySelector('#remove_marker').onclick = function () {
+        //将此标注从地图中删除
+        m.remove()
+        changsha.remove()
+        yueyang.remove()
+        shaoyang.remove()
+        huaihua.remove()
+        xiyan.remove()
+        wugang.remove()
+        chengbu.remove()
+        zhongfang.remove()
+        zhangjiajie.remove()
+        yongzhou.remove()
+        yiyang.remove()
+        loudi.remove()
+        hengyang.remove()
+        chenzhou.remove()
+        changde.remove()
+      }
+      //---6添加和移除标注部分---
+
+      //---4屏幕坐标和经纬度转换部分---
+      var el1 = document.querySelectorAll('.button1')
+      map.on('click', function (e) {
+        var c = map.project(e.latlng)
+        el1[0].innerHTML = Math.floor(c.x) + ',' + Math.floor(c.y)
+        var p = map.unproject(c)
+        el1[1].innerHTML = p.lat.toFixed(4) + ',' + p.lng.toFixed(4)
+      })
+      //---4屏幕坐标和经纬度转换部分---
+      //刷新
+      document.querySelector('#clearMap').onclick = function() {
+        window.location.reload()
+      }
+      clearMap
+      // 添加经纬度
+      var addMap = $('#addInput');
+      var mapList = $('#mapList')
+      document.querySelector('#addInput').onclick = function(e) {
+        console.log(mapList)
+        mapList.append(`
+        <li class="log-lat">
+          <span>经度：</span><input name="log"/>
+          <span>纬度：</span><input name="lat"/>
+        </li>
+        `)
+      }
+      document.querySelector('#comfLocation').onclick = function(){
+        console.log(`21`)
+        var locationArr = []
+        $("input[name='log']").each(function(index,item) {
+          if(this.value && $("input[name='lat']")[index].value) {
+            locationArr.push([this.value, $("input[name='lat']")[index].value])
+          }
+        })
+        var polyline= []
+        var el = document.querySelectorAll('.button')
+        var polyline = BM.polyline(locationArr).addTo(map)
+        map.fitBounds(polyline.getBounds())
+        map.fitBounds(polyline.getBounds())
+        var m = BM.marker(locationArr[0], {
+          icon: BM.icon({
+            iconUrl: './common/fj1.png',
+            iconAnchor: [20, 20],
+          }),
+          center: locationArr[locationArr.length-1], zoom: 5, zoomControl: true,attributionControl:false
+        }).addTo(map)
+        // var map = BM.map('map', 'bigemap.googlemap-streets', { center: [30, 104], zoom: 5, zoomControl: true,attributionControl:false });
+        // // 创建一个半径为200000的圆。中心点30,104.具体api详情请参见 ：http://www.bigemap.com/offlinemaps/api/#circle
+        BM.circle(locationArr[locationArr.length-1], {radius: 30000, color: 'red'}).addTo(map);
+        var passed = BM.polyline([[]], { color: 'red' }).addTo(map)
+        m.on('update_position', function (e) {
+          //每次坐标更新。然后也更新路径
+          passed.setLatLngs(e.path)
+        })
+        el[0].onclick = function () {
+          m.moveAlong(polyline, 101)
+        }
+
+        el[1].onclick = function () {
+          m.pauseMove()
+        }
+
+        el[2].onclick = function () {
+          m.resumeMove()
+        }
+        el[3].onclick = function () {
+          m.setSpeed(m.getSpeed(101) + 100)
+        }
+        el[4].onclick = function () {
+          m.setSpeed(m.getSpeed(101) - 100)
+        }
+      }
+      
+      //---3轨迹回放部分---
+      // var el = document.querySelectorAll('.button')
+      // var polyline = BM.polyline([
+      //   [28.12, 112.59],
+      //   [29.02, 111.51],
+      //   [29.22, 113.06],
+      //   [27.51, 113.09],
+      // ]).addTo(map)
+      // map.fitBounds(polyline.getBounds())
+      // var m = BM.marker([28.12, 112.59], {
+      //   icon: BM.icon({
+      //     iconUrl: './common/fj1.png',
+      //     iconAnchor: [20, 20],
+      //   }),
+      // }).addTo(map)
+      // //添加一条线段也记录已经路过的点
+      // var passed = BM.polyline([[]], { color: 'red' }).addTo(map)
+      // m.on('update_position', function (e) {
+      //   //每次坐标更新。然后也更新路径
+      //   passed.setLatLngs(e.path)
+      // })
+      // el[0].onclick = function () {
+      //   m.moveAlong(polyline, 101)
+      // }
+
+      // el[1].onclick = function () {
+      //   m.pauseMove()
+      // }
+
+      // el[2].onclick = function () {
+      //   m.resumeMove()
+      // }
+      // el[3].onclick = function () {
+      //   m.setSpeed(m.getSpeed(101) + 100)
+      // }
+      // el[4].onclick = function () {
+      //   m.setSpeed(m.getSpeed(101) - 100)
+      // }
+      //---3轨迹回放部分---
+
+      //---1模拟迁移部分---
+      //模拟航迹迁移
+      var geoCoordMap = {
+        长沙: [112.59, 28.12],
+        常德: [111.51, 29.02],
+        郴州: [113.02, 25.46],
+        衡阳: [112.37, 26.53],
+        洪江: [109.59, 27.07],
+        怀化: [109.58, 27.33],
+        津市: [111.52, 29.38],
+        吉首: [109.43, 28.18],
+        耒阳: [112.51, 26.24],
+        冷水江: [111.26, 27.42],
+        冷水滩: [111.35, 26.26],
+        涟源: [111.41, 27.41],
+        醴陵: [113.3, 27.4],
+        临湘: [113.27, 29.29],
+        浏阳: [113.37, 28.09],
+        娄底: [111.59, 27.44],
+        汨罗: [113.03, 28.49],
+        韶山: [112.29, 27.54],
+        邵阳: [111.28, 27.14],
+        武冈: [110.37, 26.43],
+        湘潭: [112.53, 27.52],
+        湘乡: [112.31, 27.44],
+        益阳: [112.2, 28.36],
+        永州: [111.37, 26.13],
+        沅江: [112.22, 28.5],
+        岳阳: [113.06, 29.22],
+        张家界: [110.29, 29.08],
+        株洲: [113.09, 27.51],
+        资兴: [113.13, 25.58],
+      }
+      var CSData = [
+        [{ name: '长沙' }, { name: '怀化', value: 95 }],
+        [{ name: '长沙' }, { name: '武冈', value: 90 }],
+        [{ name: '长沙' }, { name: '岳阳', value: 80 }],
+        [{ name: '长沙' }, { name: '株洲', value: 70 }],
+        [{ name: '长沙' }, { name: '郴州', value: 60 }],
+        [{ name: '长沙' }, { name: '常德', value: 50 }],
+        [{ name: '长沙' }, { name: '永州', value: 40 }],
+        [{ name: '长沙' }, { name: '邵阳', value: 30 }],
+        [{ name: '长沙' }, { name: '张家界', value: 20 }],
+        [{ name: '长沙' }, { name: '娄底', value: 10 }],
+      ]
+
+      var HHData = [
+        [{ name: '怀化' }, { name: '长沙', value: 95 }],
+        [{ name: '怀化' }, { name: '洪江', value: 90 }],
+        [{ name: '怀化' }, { name: '永州', value: 80 }],
+        [{ name: '怀化' }, { name: '娄底', value: 70 }],
+        [{ name: '怀化' }, { name: '津市', value: 60 }],
+        [{ name: '怀化' }, { name: '衡阳', value: 50 }],
+        [{ name: '怀化' }, { name: '常德', value: 40 }],
+        [{ name: '怀化' }, { name: '汨罗', value: 30 }],
+        [{ name: '怀化' }, { name: '醴陵', value: 20 }],
+        [{ name: '怀化' }, { name: '张家界', value: 10 }],
+      ]
+
+      var WGData = [
+        [{ name: '武冈' }, { name: '长沙', value: 95 }],
+        [{ name: '武冈' }, { name: '张家界', value: 90 }],
+        [{ name: '武冈' }, { name: '冷水江', value: 80 }],
+        [{ name: '武冈' }, { name: '怀化', value: 70 }],
+        [{ name: '武冈' }, { name: '常德', value: 60 }],
+        [{ name: '武冈' }, { name: '株洲', value: 50 }],
+        [{ name: '武冈' }, { name: '岳阳', value: 40 }],
+        [{ name: '武冈' }, { name: '永州', value: 30 }],
+        [{ name: '武冈' }, { name: '冷水滩', value: 20 }],
+        [{ name: '武冈' }, { name: '耒阳', value: 10 }],
+      ]
+      var planePath = 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z'
+
+      var convertData = function (data) {
+        var res = []
+        for (var i = 0; i < data.length; i++) {
+          var dataItem = data[i]
+          var fromCoord = geoCoordMap[dataItem[0].name]
+          var toCoord = geoCoordMap[dataItem[1].name]
+          if (fromCoord && toCoord) {
+            res.push({
+              fromName: dataItem[0].name,
+              toName: dataItem[1].name,
+              coords: [fromCoord, toCoord],
+            })
+          }
+        }
+        return res
+      }
+      var color = ['#a6c84c', '#ffa022', '#46bee9']
+      var series = []
+      ;[
+        ['长沙', CSData],
+        ['怀化', HHData],
+        ['武冈', WGData],
+      ].forEach(function (item, i) {
+        series.push(
+          {
+            name: item[0] + ' Top10',
+            type: 'lines',
+            coordinateSystem: 'leaflet',
+            zlevel: 1,
+            effect: {
+              show: true,
+              period: 6,
+              trailLength: 0.7,
+              color: '#fff',
+              symbolSize: 3,
+            },
+            lineStyle: {
+              normal: {
+                color: color[i],
+                width: 0,
+                curveness: 0.2,
+              },
+            },
+            data: convertData(item[1]),
+          },
+          {
+            name: item[0] + ' Top10',
+            type: 'lines',
+            coordinateSystem: 'leaflet',
+            zlevel: 2,
+            symbol: ['none', 'arrow'],
+            symbolSize: 10,
+            effect: {
+              show: true,
+              period: 6,
+              trailLength: 0,
+              symbol: planePath,
+              symbolSize: 15,
+            },
+            lineStyle: {
+              normal: {
+                color: color[i],
+                width: 1,
+                opacity: 0.6,
+                curveness: 0.2,
+              },
+            },
+            data: convertData(item[1]),
+          },
+          {
+            name: item[0] + ' Top10',
+            type: 'effectScatter',
+            coordinateSystem: 'leaflet',
+            zlevel: 2,
+            rippleEffect: {
+              brushType: 'stroke',
+            },
+            label: {
+              normal: {
+                show: true,
+                position: 'right',
+                formatter: '{b}',
+              },
+            },
+            symbolSize: function (val) {
+              return val[2] / 8
+            },
+            itemStyle: {
+              normal: {
+                color: color[i],
+              },
+            },
+            data: item[1].map(function (dataItem) {
+              return {
+                name: dataItem[1].name,
+                value: geoCoordMap[dataItem[1].name].concat([dataItem[1].value]),
+              }
+            }),
+          }
+        )
+      })
+
+      option = {
+        title: {
+          text: '模拟迁徙',
+          subtext: ' ',
+          textStyle: {
+            color: '#f1f1f1',
+            fontSize: 25,
+          },
+          left: 'center',
+        },
+        tooltip: {
+          trigger: 'item',
+        },
+        legend: {
+          orient: 'vertical',
+          top: 'top',
+          left: 'right',
+          data: ['长沙 Top10', '怀化 Top10', '武冈 Top10'],
+          textStyle: {
+            color: '#fff',
+          },
+          selectedMode: 'multiple',
+          backgroundColor: 'rgba(128, 128, 128, 0.5)',
+        },
+
+        series: series,
+      }
+      BM.supermap.echartsLayer(option).addTo(map)
+      //---1模拟迁移部分---
+
+      //---2鼠标测距部分---
+      BM.control.scale({ maxWidth: 240, metric: true, imperial: false, position: 'bottomleft' }).addTo(map)
+      var plugin = BM.control
+        .measure({
+          //  显示位置
+          position: 'topleft',
+          //  是否启用键盘控制
+          keyboard: true,
+          //  启用键
+          activeKeyCode: 'M'.charCodeAt(0),
+          //  取消键，默认esc
+          cancelKeyCode: 27,
+          //  线颜色
+          lineColor: 'red',
+          //  线宽
+          lineWeight: 2,
+          //  虚线配置
+          lineDashArray: '6, 6',
+          //  透明度
+          lineOpacity: 1,
+          //  格式化距离
+          // formatDistance: function (val) {
+          //   return Math.round(1000 * val / 1609.344) / 1000 + 'mile';
+          // }
+        })
+        .addTo(map)
+      //---2鼠标测距部分---
+    </script>
+  </body>
+</html>

@@ -1,0 +1,49 @@
+.bigemap-control-measure {
+	font-size: 16px;
+	font-weight: bold;
+	line-height: 21px;
+	}
+.bigemap-remove-current-data{
+	display: inline-block;
+	background-color: #fff;
+	border: 2px solid red;
+}
+.bigemap-remove-current-data .close{
+	position: absolute;
+	top: -6px;
+	left: 2px;
+	color: red;
+}
+.bigemap-bar-part-top-and-bottom {
+	-webkit-border-radius: 4px 4px 4px 4px;
+	        border-radius: 4px 4px 4px 4px;
+	border-bottom: none;
+	}
+
+.bigemap-touch .bigemap-bar-part-top-and-bottom {
+	-webkit-border-radius: 7px 7px 7px 7px;
+	        border-radius: 7px 7px 7px 7px;
+	border-bottom: none;
+	}
+
+.bigemap-control-measure-on .bigemap-control-measure {
+	box-shadow: 0 0 8px rgba(10,10,10,1.0);
+	}
+.bigemap-measure-tooltip {
+	font: 9px/1.25 "Helvetica Neue", Arial, Helvetica, sans-serif;
+	background-color: rgba(255, 255, 255, 0.7);
+	box-shadow: 0 0 5px #BBB;
+	margin: 0;
+	padding: 2px;
+	width: auto !important;
+	height: auto !important;
+	white-space: nowrap;
+	}
+
+.bigemap-measure-tooltip-total {
+	font-weight: bold;
+	}
+
+.bigemap-measure-tooltip-difference {
+	color: #777;
+	}
